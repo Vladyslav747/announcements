@@ -53,6 +53,15 @@ paths:
                       $ref: '#components/schemas/Announcement'
                   ScannedCount:
                     type: integer
+        '400':
+          description: Errors about invalid parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errors:
+                    type: object
     post:
       summary: Creates a new announcement
       description: Available through the private API server. 
@@ -86,6 +95,15 @@ paths:
                     type: string
         '401':
           description: Access token is missing or invalid
+        '400':
+          description: Errors about invalid parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errors:
+                    type: object
 
   /Prod/get-user-token/:
     get:
