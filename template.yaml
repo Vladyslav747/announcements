@@ -1,0 +1,142 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Announcement microservice
+
+Globals:
+  Function:
+    Timeout: 3
+
+Resources:
+  PrivateAPI:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Cors: "'*'"
+      Auth:
+        DefaultAuthorizer: CognitoAuthorizer
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !GetAtt CognitoUserPool.Arn
+
+  GetAnnouncementsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: core/
+      Handler: handlers.get_announcements
+      Runtime: python3.8
+      Role: !GetAtt LambdaRole.Arn
+      Events:
+        GetAnnouncements:
+          Type: Api
+          Properties:
+            Path: /announcements
+            Method: GET
+            RequestParameters:
+              - 'method.request.querystring.limit'
+              - 'method.request.querystring.lastKey'
+
+  CreateAnnouncementsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: core/
+      Handler: handlers.create_announcement
+      Runtime: python3.8
+      Role: !GetAtt LambdaRole.Arn
+      Events:
+        CreateAnnouncement:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PrivateAPI
+            Path: /announcements
+            Method: POST
+  
+  GetUserTokenFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: core/
+      Handler: handlers.get_user_token
+      Runtime: python3.8
+      Role: !GetAtt LambdaRole.Arn
+      Environment:
+        Variables:
+          COGNITO_USER_POOL_ID: !Ref CognitoUserPool
+          COGNITO_CLIENT_ID: !Ref CognitoUserPoolClient
+      Events:
+        CreateAnnouncement:
+          Type: Api
+          Properties:
+            Path: /get-user-token
+            Method: GET
+
+  AnnouncementsTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: id
+        Type: String
+      TableName: announcements
+  
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: announcements_userpool
+      AutoVerifiedAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+      UsernameAttributes:
+        - email
+      Schema:
+        - AttributeDataType: String
+          Name: email
+          Required: false
+
+  CognitoUserPoolClient:
+    DependsOn: CognitoUserPool
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref CognitoUserPool
+      ClientName: AnnouncementsUserPollClient
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_ADMIN_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_CUSTOM_AUTH
+        - ALLOW_ADMIN_USER_PASSWORD_AUTH
+
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: 'Allows lambdas perfom operations on a set of resources'
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: lambda-cognito
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'cognito-idp:AdminInitiateAuth'
+                  - 'cloudwatch:*'
+                  - 'logs:*'
+                  - 'dynamodb:*'
+                Resource: '*'
+  
+Outputs:
+  AnnouncementsApi:
+    Description: "API Gateway endpoint URL for get announcements function"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/announcements/"
+  GetAnnouncementsFunction:
+    Description: "Get Announcements Lambda Function ARN"
+    Value: !GetAtt GetAnnouncementsFunction.Arn
