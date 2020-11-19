@@ -16,6 +16,7 @@ The application uses several AWS resources, including Lambda functions and an AP
 * Techonoligies stack choices [explained](https://docs.google.com/document/d/1XU3lYmYrJxCW6KSSRM8_55XcjMaF65_Q5zBYaH5t2ps/edit?usp=sharing)
 
 ## Deploy the application
+In order to access the private API you must have a user in your Cognito user pool and obtain a user token.
 
 To use the SAM CLI, you need the following tools.
 
