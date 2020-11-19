@@ -40,7 +40,6 @@ def get_announcements(event, context):
     }
 
 
-
 def create_announcement(event, context):
     validator = Validator(create_announcement_schema)
     body_params = json.loads(event['body'] or '{}')
@@ -72,7 +71,14 @@ def get_user_token(event, context):
             'USERNAME': email,
             'PASSWORD': password
         }}
-    response = client.admin_initiate_auth(**params)
+    try:
+        response = client.admin_initiate_auth(**params)
+    except client.exceptions.UserNotFoundException:
+        return {
+            'statusCode': 400,
+            'body': json.dumps({'message': 'User does not exist'})
+        }
+
     return {
         'statusCode': 200,
         'body': json.dumps({'id_token': response['AuthenticationResult']['IdToken']})
