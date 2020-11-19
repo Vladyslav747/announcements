@@ -6,9 +6,9 @@ info:
   version: 0.0.1
 
 servers:
-  - url: https://yb9pqd6u0f.execute-api.eu-central-1.amazonaws.com
+  - url: https://dtl2ojk19g.execute-api.eu-central-1.amazonaws.com
     description: A public API for retriving announcements
-  - url: https://8htui023p8.execute-api.eu-central-1.amazonaws.com
+  - url: https://g0fpvr7h5d.execute-api.eu-central-1.amazonaws.com
     description: A private API for creating announcements
 
 paths:
@@ -18,7 +18,7 @@ paths:
       description: Available through the public API server. Supports pagination
       
       servers:
-        - url: https://yb9pqd6u0f.execute-api.eu-central-1.amazonaws.com
+        - url: https://dtl2ojk19g.execute-api.eu-central-1.amazonaws.com
 
       parameters:
         - in: query
@@ -69,7 +69,7 @@ paths:
         - bearerAuth: []
       
       servers:
-        - url: https://8htui023p8.execute-api.eu-central-1.amazonaws.com
+        - url: https://g0fpvr7h5d.execute-api.eu-central-1.amazonaws.com
 
       requestBody:
         required: true
@@ -109,7 +109,7 @@ paths:
     get:
       summary: Retrieve a user access token. Make sure you've god a user create through the AWS cognito console first.
       servers:
-        - url: https://yb9pqd6u0f.execute-api.eu-central-1.amazonaws.com
+        - url: https://dtl2ojk19g.execute-api.eu-central-1.amazonaws.com
       
       parameters:
         - in: query
@@ -117,13 +117,13 @@ paths:
           schema:
             type: string
             format: email
-            default: vlad.mashkin@yahoo.com
+            default: vladyslav_mashkin@epam.com
         - in: query
           name: password
           schema:
             type: string
             format: email
-            default: '222222ss'
+            default: '12345678'
 
       responses:
         '200':
