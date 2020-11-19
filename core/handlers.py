@@ -26,7 +26,7 @@ def get_announcements(event, context):
     if not validator.validate(query_params):
         return {
             'statusCode': 400,
-            'body': {'errors': json.dumps(validator.errors)}
+            'body': json.dumps({'errors': validator.errors})
         }
 
     cleaned_data = validator.normalized(validator.document)
@@ -47,7 +47,7 @@ def create_announcement(event, context):
     if not validator.validate(body_params):
         return {
             'statusCode': 400,
-            'body': {'errors': json.dumps(validator.errors)}
+            'body': json.dumps({'errors': validator.errors})
         }
 
     table = init_announcements_table()
