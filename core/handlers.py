@@ -10,7 +10,7 @@ from cerberus import Validator
 DEFAULT_SCAN_LIMIT = 10
 
 get_announcements_schema = {
-    'limit': {'type': 'integer', 'default': DEFAULT_SCAN_LIMIT},
+    'limit': {'type': 'integer', 'default': DEFAULT_SCAN_LIMIT, 'coerce': int},
     'last_key': {'type': 'string'}
 }
 
@@ -21,7 +21,7 @@ create_announcement_schema = {
 
 
 def get_announcements(event, context):
-    query_params = event['queryStringParameters']
+    query_params = event['queryStringParameters'] or {}
     validator = Validator(get_announcements_schema)
     if not validator.validate(query_params):
         return {
@@ -29,20 +29,29 @@ def get_announcements(event, context):
             'body': {'errors': json.dumps(validator.errors)}
         }
 
-    normalized_params = validator.normalized(query_params)
+    cleaned_data = validator.normalized(validator.document)
     table = init_announcements_table()
-    scan_params = get_scan_parameters(normalized_params)
+    scan_params = get_scan_parameters(cleaned_data)
     scan_result = table.scan(**scan_params)
     del scan_result['ResponseMetadata']
     return {
         'statusCode': 200,
-        'body': json.dumps(scan_result),
+        'body': json.dumps(scan_result)
     }
 
 
+
 def create_announcement(event, context):
+    validator = Validator(create_announcement_schema)
+    body_params = json.loads(event['body'] or '{}')
+    if not validator.validate(body_params):
+        return {
+            'statusCode': 400,
+            'body': {'errors': json.dumps(validator.errors)}
+        }
+
     table = init_announcements_table()
-    table.put_item(Item=get_announcement_attributes(event['body']))
+    table.put_item(Item=get_announcement_attributes(validator.document))
     return {
         'statusCode': 201,
         'body': json.dumps({'message': 'Success'})
@@ -75,23 +84,16 @@ def init_announcements_table():
     return dynamodb.Table('announcements')
 
 
-def get_scan_parameters(query_params):
-    if query_params is None:
-        return {}
-
-    last_key = query_params.get('last_key')
-    limit = query_params.get('limit', DEFAULT_SCAN_LIMIT)
-
-    scan_params = {'Limit': int(limit)}
+def get_scan_parameters(cleaned_data):
+    last_key, limit = cleaned_data.get('last_key'), cleaned_data.get('limit')
+    scan_params = {'Limit': limit}
     if last_key:
         scan_params['ExclusiveStartKey'] = {'id': last_key}
-
     return scan_params
 
 
-def get_announcement_attributes(request_body):
-    body = json.loads(request_body)
-    title, description = body['title'], body['description']
+def get_announcement_attributes(cleaned_data):
+    title, description = cleaned_data['title'], cleaned_data['description']
     date, id_ = str(datetime.datetime.now()), str(uuid.uuid4())
     return {
         'title': title,
